@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ESP8266WiFi.h>
+#include <ArduinoJson.h>
 #include <map>
 #include "Adafruit_MQTT.h"
 #include "Adafruit_MQTT_Client.h"
@@ -10,10 +11,10 @@
 class MQTTResult {
   public:
   bool success;
-  String message;
+  char* message;
 };
 
-class MQTTContext {
+class MQTTConnection {
   
   private:
   WiFiClient* wifiClient;
@@ -24,7 +25,7 @@ class MQTTContext {
   void setupClient();
   
   public:
-  MQTTContext();
+  MQTTConnection();
   MQTTResult mqttConnect();
   MQTTResult mqttPublish(const char* topic, const char* data);
   MQTTResult mqttPing();

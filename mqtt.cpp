@@ -1,21 +1,25 @@
 #include "mqtt.h"
 
-MQTTContext::MQTTContext() {
+MQTTConnection::MQTTConnection() {
   setupWiFi();
   setupClient();
 };
 
-void MQTTContext::setupWiFi() {
+void MQTTConnection::setupWiFi() {
 
-  IPAddress staticIP(192, 168, 0, 6);
-  IPAddress gateway(0, 0, 0, 0);
-  IPAddress subnet(192, 168, 0, 1);
-  IPAddress dns1(0, 0, 0, 0);
-  IPAddress dns2(0, 0, 0, 0);
-  
+  IPAddress staticIP(WIFI_STATIC_IP);
+  IPAddress gateway(WIFI_GATEWAY);
+  IPAddress subnet(WIFI_NETWORK);
+  IPAddress primaryDNS(WIFI_DNS1);
+  IPAddress secondaryDNS(WIFI_DNS2);
+
   wifiClient = new WiFiClient();
   
   Serial.print("Connecting to ");Serial.println(WIFI_SSID);
+
+  if (WIFI_USE_STATIC_IP && !WiFi.config(staticIP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("STA Failed to configure");
+  }
   
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
@@ -26,11 +30,11 @@ void MQTTContext::setupWiFi() {
   Serial.print("WiFi connected. IP address: "); Serial.println(WiFi.localIP());
 };
 
-void MQTTContext::setupClient() {
+void MQTTConnection::setupClient() {
   mqtt = new Adafruit_MQTT_Client(wifiClient, MQTT_SERVER, MQTT_SERVERPORT, MQTT_USERNAME, MQTT_KEY);
 }
 
-MQTTResult MQTTContext::mqttConnect() {
+MQTTResult MQTTConnection::mqttConnect() {
   
   MQTTResult result;
   result.success = true;
@@ -38,8 +42,6 @@ MQTTResult MQTTContext::mqttConnect() {
   if (mqtt->connected()) {
     return result;
   }
-
-  Serial.print("Connecting to MQTT... ");
   
   int8_t ret;
   uint8_t retries = 3;
@@ -54,11 +56,11 @@ MQTTResult MQTTContext::mqttConnect() {
          while (1);
        }
   }
-  Serial.println("MQTT Connected!");
+  
   return result;
 }
 
-MQTTResult MQTTContext::mqttPublish(const char* topic, const char* data) {
+MQTTResult MQTTConnection::mqttPublish(const char* topic, const char* data) {
   
   MQTTResult r;
   Adafruit_MQTT_Publish* publisher = publishers[topic];
@@ -76,7 +78,7 @@ MQTTResult MQTTContext::mqttPublish(const char* topic, const char* data) {
   return r;
 };
 
-MQTTResult MQTTContext::mqttPing() {
+MQTTResult MQTTConnection::mqttPing() {
   MQTTResult r;
   r.success = true;
   if(!mqtt->ping()) {

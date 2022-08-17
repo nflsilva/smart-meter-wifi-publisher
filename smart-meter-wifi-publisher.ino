@@ -1,4 +1,4 @@
-#include <SoftwareSerial.h>
+#include <ArduinoJson.h>
 #include <string>
 
 #include "secrets.h"
@@ -8,28 +8,14 @@
 // USB
 #define USB_BAUD 115200
 
-// TTL
-#define TTL_BAUD 9300
-#define TTL_RX_PIN 4
-#define TTL_TX_PIN 5
-#define TTL_RESPONSE_LEN 14
-
-SoftwareSerial ttlSerial = SoftwareSerial(TTL_RX_PIN, TTL_TX_PIN);
-byte request[8] = { 0x01, 0x04, 0x00, 0x01, 0x00, 0x01, 0x60, 0x0a };
-byte response[TTL_RESPONSE_LEN];
-
-MQTTContext* haContext = NULL;
+struct Context {
+  MQTTConnection* mqttConnection = NULL;
+  EredesMeterConnection* meterConnection = NULL;
+  DynamicJsonDocument* responseJson = NULL;
+} context;
 
 void setupSerial() {
    Serial.begin(USB_BAUD);
-}
-
-
-
-void setupTTL() {
-  pinMode(TTL_RX_PIN, INPUT);
-  pinMode(TTL_TX_PIN, OUTPUT);
-  ttlSerial.begin(TTL_BAUD);
 }
 
 void setup() {
@@ -37,31 +23,38 @@ void setup() {
   setupSerial();
   delay(100);
 
-  haContext = new MQTTContext();
+  context.mqttConnection = new MQTTConnection();
   delay(100);
-  
-  setupTTL();
+
+  context.meterConnection = new EredesMeterConnection();
   delay(100);
+
+  context.responseJson = new DynamicJsonDocument(512);
 
 }
 
-int n = 0;
-
 void loop() {
-
-
-  haContext->mqttConnect();
-
-  auto data = "hello-" + std::to_string(n++);
-  
-  Serial.print("Publishing "); Serial.println(data.c_str());
-  haContext->mqttPublish("/feeds/photocell", data.c_str());
-  delay(1000);
-
 
   auto heap = ESP.getFreeHeap();
 
-  Serial.println(("heap-" + std::to_string(heap)).c_str());
+  TimeResponse tr;
+  context.meterConnection->getCurrentTime(&tr);
+
+  auto json = *context.responseJson; 
+  json["heap"] = heap;
+  json["hours"] = tr.hours;
+  json["minutes"] = tr.minutes;
+  json["seconds"] = tr.minutes;
+  
+  String data;
+  serializeJson(json, data);
+
+  context.mqttConnection->mqttConnect();
+
+  //Serial.print("Publishing "); Serial.println(data.c_str());
+  context.mqttConnection->mqttPublish("/feeds/test", data.c_str());
+  delay(1000);
+
 /*
 
 byte ttlRead() {

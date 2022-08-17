@@ -1,12 +1,28 @@
 #pragma once
 
+#include <SoftwareSerial.h>
 #include <stdint.h>
 #include <stddef.h>
 
-typedef struct TimeResponse {
+#define TTL_BAUD 9300
+#define TTL_RX_PIN 4
+#define TTL_TX_PIN 5
+#define TTL_RESPONSE_LEN 13
+
+class TimeResponse {
+  public:
   uint8_t hours;
   uint8_t minutes;
   uint8_t seconds;
-} TimeResponse_t;
+};
 
-void parseTimeResponse(uint8_t* data, TimeResponse_t* response);
+class EredesMeterConnection {
+  
+  private:
+  SoftwareSerial* serialConnection;
+  
+  public:
+  EredesMeterConnection();
+  void getCurrentTime(TimeResponse* response);
+  
+};
