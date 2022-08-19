@@ -40,7 +40,7 @@ void loop() {
   ClockResponse cr;
   context.meterConnection->getClock(&cr);
 
-  VoltageCurrentResponse vr;
+  InstantVoltageCurrentResponse vr;
   context.meterConnection->getVoltageAndCurrent(&vr);
 
   auto json = *context.responseJson; 

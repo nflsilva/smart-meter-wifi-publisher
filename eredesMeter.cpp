@@ -61,7 +61,7 @@ void EredesMeterConnection::getClock(ClockResponse* response) {
   response->hseconds = responseData[12];
 };
 
-void EredesMeterConnection::getVoltageAndCurrent(VoltageCurrentResponse* response) {
+void EredesMeterConnection::getVoltageAndCurrent(InstantVoltageCurrentResponse* response) {
 
   byte request[8] = { 0x01, 0x04, 0x00, 0x6c, 0x00, 0x02, 0xb1, 0xd6 };
   writeRequest(request, 8);
@@ -72,3 +72,15 @@ void EredesMeterConnection::getVoltageAndCurrent(VoltageCurrentResponse* respons
   response->voltage = responseData[1] << 8 | responseData[2];
   response->current =  responseData[3] << 8 | responseData[4];
 };
+
+void EredesMeterConnection::getTotalPower(TotalPowerResponse* response) {
+  
+  byte request[8] = { 0x01, 0x04, 0x00, 0x16, 0x00, 0x02, 0x90, 0x0f };
+  writeRequest(request, 8);
+  
+  byte responseData[EREDES_TOTAL_POWER_RESPONSE_LEN];
+  readResponse(responseData, EREDES_TOTAL_POWER_RESPONSE_LEN);
+
+  response->import = responseData[1] << 8 | responseData[2] | responseData[1] << 8 | responseData[2];
+  response->export =  responseData[3] << 8 | responseData[4];
+}

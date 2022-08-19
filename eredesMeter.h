@@ -10,6 +10,7 @@
 
 #define EREDES_CLOCK_RESPONSE_LEN 13
 #define EREDES_VOLTAGE_CURRENT_RESPONSE_LEN 5
+#define EREDES_TOTAL_POWER_RESPONSE_LEN 9
 
 /*
  * r01 04 0001 0001
@@ -46,11 +47,16 @@
   
 */
  
-
-class VoltageCurrentResponse {
+class InstantVoltageCurrentResponse {
   public:
   uint16_t voltage;
   uint16_t current;
+};
+
+class TotalPowerResponse {
+  public:
+  uint32_t import;
+  uint32_t export;
 };
 
 class ClockResponse {
@@ -77,6 +83,7 @@ class EredesMeterConnection {
   public:
   EredesMeterConnection();
   void getClock(ClockResponse* response);
-  void getVoltageAndCurrent(VoltageCurrentResponse* response);
+  void getVoltageAndCurrent(InstantVoltageCurrentResponse* response);
+  void getTotalPower(TotalPowerResponse* response);
   
 };
