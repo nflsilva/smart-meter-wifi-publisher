@@ -22,7 +22,6 @@ void setupSerial() {
 }
 
 void setup() {
-  
   setupSerial();
   delay(100);
 
@@ -31,7 +30,6 @@ void setup() {
 
   context.meterConnection = new EredesMeterConnection();
   delay(100);
-
 }
 
 void sendConsumptionStatus(){
@@ -50,14 +48,14 @@ void sendConsumptionStatus(){
   
   json["api"] = context.tpr.energyImport;
   json["ape"] = context.tpr.energyExport;
-  //json["pf"] = context.tpr.powerFactor;
+  json["pf"] = context.tpr.powerFactor;
 
   json["vaz"] = context.trr.vazio;
   json["pon"] = context.trr.ponta;
   json["che"] = context.trr.cheias;
   json["tar"] = context.trr.tariff;
   
-  uint8_t data[1024];
+  char data[1024];
   serializeJsonPretty(json, data);
 
   context.mqttConnection->mqttConnect();
@@ -82,21 +80,20 @@ void sendMachineStatus(){
   json["min"] = context.cr.minutes;
   json["sec"] = context.cr.seconds;
   
-  /*String data;
+  char data[512];
   serializeJson(json, data);
 
   context.mqttConnection->mqttConnect();
 
-  Serial.print("Status: "); Serial.println(data.c_str());
-  context.mqttConnection->mqttPublish("tele/powermeter/status", data.c_str());*/
+  Serial.print("Status: "); Serial.println(data);
+  context.mqttConnection->mqttPublish("tele/powermeter/status", data);
 }
 
 void loop() {
 
   sendConsumptionStatus();
   
-  //sendMachineStatus();
+  sendMachineStatus();
 
-  delay(60000);
-  
+  delay(6000);
 }

@@ -31,7 +31,9 @@ void MQTTConnection::setupWiFi() {
 };
 
 void MQTTConnection::setupClient() {
-  mqtt = new Adafruit_MQTT_Client(wifiClient, MQTT_SERVER, MQTT_SERVERPORT, MQTT_USERNAME, MQTT_KEY);
+  mqtt = new MqttClient(wifiClient);
+  mqtt->setId("clientId");
+  mqtt->setUsernamePassword(MQTT_USERNAME, MQTT_KEY);
 }
 
 MQTTResult MQTTConnection::mqttConnect() {
@@ -43,39 +45,25 @@ MQTTResult MQTTConnection::mqttConnect() {
     return result;
   }
   
-  int8_t ret;
-  uint8_t retries = 3;
-  while ((ret = mqtt->connect()) != 0) {
-       Serial.println(mqtt->connectErrorString(ret));
-       Serial.println("Retrying MQTT connection in 5 seconds...");
-       mqtt->disconnect();
-       delay(5000);
-       retries--;
-       if (retries == 0) {
-         Serial.println("Failed MQTT connection. Please reset.");
-         while (1);
-       }
+  if (!mqtt->connect(MQTT_SERVER, MQTT_SERVERPORT)) {
+    Serial.print("MQTT connection failed! Error code = ");
+    Serial.println(mqtt->connectError());
+
+    while (1);
   }
   
   return result;
 }
 
-MQTTResult MQTTConnection::mqttPublish(const char* topic, const unsigned char* data) {
+MQTTResult MQTTConnection::mqttPublish(const char* topic, const char* data) {
   
   MQTTResult r;
-  Adafruit_MQTT_Publish* publisher = publishers[topic];
-  
-  if(publisher == NULL) {
-    publisher = new Adafruit_MQTT_Publish(mqtt, topic);
-    publishers[topic] = publisher;
-  }
-  
-  r.success = publisher->publish((uint8_t*)data, 5000);
-  Serial.println(r.success);
+  r.success = true;
+  mqtt->beginMessage(topic);
+  mqtt->print(data);
+  mqtt->endMessage();
+
   delay(100);
-  /*if(!mqtt->ping()) {
-    mqtt->disconnect();
-  }*/
 
   return r;
 };
@@ -83,9 +71,6 @@ MQTTResult MQTTConnection::mqttPublish(const char* topic, const unsigned char* d
 MQTTResult MQTTConnection::mqttPing() {
   MQTTResult r;
   r.success = true;
-  if(!mqtt->ping()) {
-    mqtt->disconnect();
-    r.success = false;
-  }
+
   return r;
 };

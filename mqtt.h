@@ -3,8 +3,7 @@
 #include <ESP8266WiFi.h>
 #include <ArduinoJson.h>
 #include <map>
-#include "Adafruit_MQTT.h"
-#include "Adafruit_MQTT_Client.h"
+#include <ArduinoMqttClient.h>
 
 #include "secrets.h"
 
@@ -18,8 +17,7 @@ class MQTTConnection {
   
   private:
   WiFiClient* wifiClient;
-  Adafruit_MQTT_Client* mqtt;
-  std::map<const char*, Adafruit_MQTT_Publish*> publishers;
+  MqttClient* mqtt;
 
   void setupWiFi();
   void setupClient();
@@ -27,7 +25,7 @@ class MQTTConnection {
   public:
   MQTTConnection();
   MQTTResult mqttConnect();
-  MQTTResult mqttPublish(const char* topic, const unsigned char* data);
+  MQTTResult mqttPublish(const char* topic, const char* data);
   MQTTResult mqttPing();
   
 };
