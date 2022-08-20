@@ -60,7 +60,7 @@ void sendConsumptionStatus(){
 
   context.mqttConnection->mqttConnect();
 
-  //Serial.print("Consumption: "); Serial.println(data);
+  Serial.print("Consumption: "); Serial.println(data);
   context.mqttConnection->mqttPublish("tele/powermeter/consumption", data);
 }
 

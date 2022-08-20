@@ -17,15 +17,15 @@ void EredesMeterConnection::readResponse(byte* data) {
 
     if(serialConnection->available() <= 0) return;
     
-    serialConnection->read();
-    serialConnection->read();
+    byte address = serialConnection->read();
+    byte function = serialConnection->read();
     uint8_t length = serialConnection->read();
     for(uint8_t i=0;i<length;i++){
       data[i] = serialConnection->read();
     }
-    serialConnection->read();
-    serialConnection->read();
-    /*
+    byte crc0 = serialConnection->read();
+    byte crc1 = serialConnection->read();
+    
     // Fast debug
     Serial.print(address, HEX);
     Serial.print(" ");
@@ -41,7 +41,7 @@ void EredesMeterConnection::readResponse(byte* data) {
     Serial.print(crc0, HEX);
     Serial.print(" ");
     Serial.println(crc1, HEX);
-    */
+    
 };
 
 void EredesMeterConnection::getClock(ClockResponse* response) {
@@ -94,13 +94,13 @@ void EredesMeterConnection::getTotalPower(TotalPowerResponse* response) {
   response->energyExport = ((responseData[4] << 24) | (responseData[5] << 16) | (responseData[6] << 8) | responseData[7]) / 1000.0f;
   response->powerFactor = ((responseData[8] << 8) | responseData[9]) / 10.0f;
 
-}
+};
 
 void EredesMeterConnection::getTariff(TariffResponse* response) {
 
   byte responseData[252];
 
-  byte request1[8] = { 0x01, 0x04, 0x00, 0x0b, 0x00, 0x01, 0x09, 0xf0 };
+  byte request1[8] = { 0x01, 0x04, 0x00, 0x0b, 0x00, 0x01, 0x040, 0x08 };
   writeRequest(request1, 8);
   readResponse(responseData);
   response->tariff = responseData[0];
@@ -113,4 +113,4 @@ void EredesMeterConnection::getTariff(TariffResponse* response) {
   response->ponta = ((responseData[4] << 24) | (responseData[5] << 16) | (responseData[6] << 8) | responseData[7]) / 1000.0;
   response->cheias = ((responseData[8] << 24) | (responseData[9] << 16) | (responseData[10] << 8) | responseData[11]) / 1000.0;
 
-}
+};
