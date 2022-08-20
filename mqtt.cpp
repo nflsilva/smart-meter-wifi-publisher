@@ -45,7 +45,7 @@ MQTTResult MQTTConnection::mqttConnect() {
   
   int8_t ret;
   uint8_t retries = 3;
-  while ((ret = mqtt->connect()) != 0) { // connect will return 0 for connected
+  while ((ret = mqtt->connect()) != 0) {
        Serial.println(mqtt->connectErrorString(ret));
        Serial.println("Retrying MQTT connection in 5 seconds...");
        mqtt->disconnect();
@@ -60,7 +60,7 @@ MQTTResult MQTTConnection::mqttConnect() {
   return result;
 }
 
-MQTTResult MQTTConnection::mqttPublish(const char* topic, const char* data) {
+MQTTResult MQTTConnection::mqttPublish(const char* topic, const unsigned char* data) {
   
   MQTTResult r;
   Adafruit_MQTT_Publish* publisher = publishers[topic];
@@ -70,10 +70,12 @@ MQTTResult MQTTConnection::mqttPublish(const char* topic, const char* data) {
     publishers[topic] = publisher;
   }
   
-  r.success = publisher->publish(data);
-  if(!mqtt->ping()) {
+  r.success = publisher->publish((uint8_t*)data, 5000);
+  Serial.println(r.success);
+  delay(100);
+  /*if(!mqtt->ping()) {
     mqtt->disconnect();
-  }
+  }*/
 
   return r;
 };

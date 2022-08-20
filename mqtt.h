@@ -27,7 +27,7 @@ class MQTTConnection {
   public:
   MQTTConnection();
   MQTTResult mqttConnect();
-  MQTTResult mqttPublish(const char* topic, const char* data);
+  MQTTResult mqttPublish(const char* topic, const unsigned char* data);
   MQTTResult mqttPing();
   
 };

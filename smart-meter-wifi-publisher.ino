@@ -11,7 +11,10 @@
 struct Context {
   MQTTConnection* mqttConnection = NULL;
   EredesMeterConnection* meterConnection = NULL;
-  DynamicJsonDocument* responseJson = NULL;
+  InstantVoltageCurrentResponse vr;
+  TotalPowerResponse tpr;
+  TariffResponse trr;
+  ClockResponse cr;
 } context;
 
 void setupSerial() {
@@ -29,39 +32,71 @@ void setup() {
   context.meterConnection = new EredesMeterConnection();
   delay(100);
 
-  context.responseJson = new DynamicJsonDocument(512);
-
 }
 
-void loop() {
+void sendConsumptionStatus(){
 
-  auto heap = ESP.getFreeHeap();
-
-  ClockResponse cr;
-  context.meterConnection->getClock(&cr);
-
-  InstantVoltageCurrentResponse vr;
-  context.meterConnection->getVoltageAndCurrent(&vr);
-
-  auto json = *context.responseJson; 
-  json["heap"] = heap;
-  json["year"] = cr.year;
-  json["month"] = cr.month;
-  json["day"] = cr.dayMonth;
-  json["hours"] = cr.hours;
-  json["minutes"] = cr.minutes;
-  json["seconds"] = cr.seconds;
-
-  json["voltage"] = vr.voltage;
-  json["current"] = vr.current;
+  DynamicJsonDocument json(1024);
   
-  String data;
+  context.meterConnection->getVoltageAndCurrent(&context.vr);
+  delay(500);
+  context.meterConnection->getTotalPower(&context.tpr);
+  delay(500);
+  context.meterConnection->getTariff(&context.trr);
+
+  json["vol"] = context.vr.voltage;
+  json["cur"] = context.vr.current;
+  json["fre"] = context.vr.frequency;
+  
+  json["api"] = context.tpr.energyImport;
+  json["ape"] = context.tpr.energyExport;
+  //json["pf"] = context.tpr.powerFactor;
+
+  json["vaz"] = context.trr.vazio;
+  json["pon"] = context.trr.ponta;
+  json["che"] = context.trr.cheias;
+  json["tar"] = context.trr.tariff;
+  
+  uint8_t data[1024];
+  serializeJsonPretty(json, data);
+
+  context.mqttConnection->mqttConnect();
+
+  //Serial.print("Consumption: "); Serial.println(data);
+  context.mqttConnection->mqttPublish("tele/powermeter/consumption", data);
+}
+
+void sendMachineStatus(){
+
+  DynamicJsonDocument json(512);
+  
+  context.meterConnection->getClock(&context.cr);
+  delay(500);
+
+  json["mem"] = ESP.getFreeHeap();
+  json["net"] = WiFi.RSSI();
+  json["yea"] = context.cr.year;
+  json["mon"] = context.cr.month;
+  json["day"] = context.cr.dayMonth;
+  json["hou"] = context.cr.hours;
+  json["min"] = context.cr.minutes;
+  json["sec"] = context.cr.seconds;
+  
+  /*String data;
   serializeJson(json, data);
 
   context.mqttConnection->mqttConnect();
 
-  Serial.print("Publishing "); Serial.println(data.c_str());
-  context.mqttConnection->mqttPublish("/feeds/test", data.c_str());
-  delay(1000);
+  Serial.print("Status: "); Serial.println(data.c_str());
+  context.mqttConnection->mqttPublish("tele/powermeter/status", data.c_str());*/
+}
+
+void loop() {
+
+  sendConsumptionStatus();
+  
+  //sendMachineStatus();
+
+  delay(60000);
   
 }

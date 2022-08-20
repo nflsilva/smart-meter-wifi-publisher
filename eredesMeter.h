@@ -8,10 +8,6 @@
 #define EREDES_RX_PIN 4
 #define EREDES_TX_PIN 5
 
-#define EREDES_CLOCK_RESPONSE_LEN 13
-#define EREDES_VOLTAGE_CURRENT_RESPONSE_LEN 5
-#define EREDES_TOTAL_POWER_RESPONSE_LEN 9
-
 /*
  * r01 04 0001 0001
  * r01 04 006C 0002
@@ -24,39 +20,19 @@
  * r01 04 000B 0002
  * r01 44 0301 ??
  */
-/*
-  H
-  01
-  04
-  0C xx xx xx xx xx uu
-  0C xx xx xx xx xx xx uu
-  0C xx xx xx xx xx xx xx uu
-  
-  R
-  01
-  04
-  12 7 230 8 17 3 22 19 6 0 128 0 128
-  24
-  72
 
-  VC
-  01
-  04
-  04 xx xx UU uu
-  
-  
-*/
- 
 class InstantVoltageCurrentResponse {
   public:
-  uint16_t voltage;
-  uint16_t current;
+  double voltage;
+  double current;
+  double frequency;
 };
 
 class TotalPowerResponse {
   public:
-  uint32_t import;
-  uint32_t export;
+  double energyImport;
+  double energyExport;
+  double powerFactor;
 };
 
 class ClockResponse {
@@ -73,17 +49,26 @@ class ClockResponse {
   uint8_t status;
 };
 
+class TariffResponse {
+  public: 
+  double vazio;
+  double ponta;
+  double cheias;
+  uint8_t tariff;
+};
+
 class EredesMeterConnection {
   
   private:
   SoftwareSerial* serialConnection;
   void writeRequest(byte* request, uint8_t length);
-  void readResponse(byte* responseData, uint8_t length);
+  void readResponse(byte* data);
   
   public:
   EredesMeterConnection();
   void getClock(ClockResponse* response);
   void getVoltageAndCurrent(InstantVoltageCurrentResponse* response);
   void getTotalPower(TotalPowerResponse* response);
+  void getTariff(TariffResponse* response);
   
 };
