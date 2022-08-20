@@ -63,6 +63,7 @@ void EredesMeterConnection::getClock(ClockResponse* response) {
   response->hseconds = responseData[8];
   response->deviation = responseData[9] << 8 | responseData[10];
   response->hseconds = responseData[11];
+  
 };
 
 void EredesMeterConnection::getVoltageAndCurrent(InstantVoltageCurrentResponse* response) {
