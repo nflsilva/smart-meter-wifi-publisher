@@ -90,8 +90,8 @@ void EredesMeterConnection::getTotalPower(TotalPowerResponse* response) {
   byte responseData[252];
   readResponse(responseData);
   
-  response->energyImport = ((responseData[0] << 24) | (responseData[1] << 16) | (responseData[2] << 8) | responseData[3]) / 1000.0f;
-  response->energyExport = ((responseData[4] << 24) | (responseData[5] << 16) | (responseData[6] << 8) | responseData[7]) / 1000.0f;
+  response->energyImport = ((responseData[0] << 24) | (responseData[1] << 16) | (responseData[2] << 8) | responseData[3]) / 1000.0;
+  response->energyExport = ((responseData[4] << 24) | (responseData[5] << 16) | (responseData[6] << 8) | responseData[7]) / 1000.0;
   response->powerFactor = ((responseData[8] << 8) | responseData[9]) / 10.0f;
 
 };
@@ -100,17 +100,29 @@ void EredesMeterConnection::getTariff(TariffResponse* response) {
 
   byte responseData[252];
 
-  byte request1[8] = { 0x01, 0x04, 0x00, 0x0b, 0x00, 0x01, 0x040, 0x08 };
-  writeRequest(request1, 8);
-  readResponse(responseData);
-  response->tariff = responseData[0];
-
-  delay(500);
   byte request0[8] = { 0x01, 0x04, 0x00, 0x26, 0x00, 0x03, 0x51, 0xc0 };
   writeRequest(request0, 8);
   readResponse(responseData);
   response->vazio = ((responseData[0] << 24) | (responseData[1] << 16) | (responseData[2] << 8) | responseData[3]) / 1000.0;
   response->ponta = ((responseData[4] << 24) | (responseData[5] << 16) | (responseData[6] << 8) | responseData[7]) / 1000.0;
   response->cheias = ((responseData[8] << 24) | (responseData[9] << 16) | (responseData[10] << 8) | responseData[11]) / 1000.0;
+  
+  delay(500);
+  byte request1[8] = { 0x01, 0x04, 0x00, 0x0b, 0x00, 0x01, 0x040, 0x08 };
+  writeRequest(request1, 8);
+  readResponse(responseData);
+  response->tariff = responseData[0];
+
+  delay(500);
+  byte request2[8] = { 0x01, 0x04, 0x00, 0x2c, 0x00, 0x01, 0xf0, 0x03 };
+  writeRequest(request2, 8);
+  readResponse(responseData);
+  response->totalImport = ((responseData[0] << 24) | (responseData[1] << 16) | (responseData[2] << 8) | responseData[3]) / 1000.0;
+
+  delay(500);
+  byte request3[8] = { 0x01, 0x04, 0x00, 0x33, 0x00, 0x01, 0xc5, 0x50 };
+  writeRequest(request3, 8);
+  readResponse(responseData);
+  response->totalExport = ((responseData[0] << 24) | (responseData[1] << 16) | (responseData[2] << 8) | responseData[3]) / 1000.0;
 
 };

@@ -54,6 +54,9 @@ void sendConsumptionStatus(){
   json["pon"] = context.trr.ponta;
   json["che"] = context.trr.cheias;
   json["tar"] = context.trr.tariff;
+
+  json["tim"] = context.trr.totalImport;
+  json["tex"] = context.trr.totalExport;
   
   char data[1024];
   serializeJsonPretty(json, data);

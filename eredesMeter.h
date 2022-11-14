@@ -54,6 +54,8 @@ class TariffResponse {
   double vazio;
   double ponta;
   double cheias;
+  double totalImport;
+  double totalExport;
   uint8_t tariff;
 };
 
