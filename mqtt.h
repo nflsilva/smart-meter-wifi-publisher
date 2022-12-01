@@ -7,25 +7,15 @@
 
 #include "secrets.h"
 
-class MQTTResult {
-  public:
-  bool success;
-  char* message;
-};
-
 class MQTTConnection {
   
   private:
-  WiFiClient* wifiClient;
   MqttClient* mqtt;
+  WiFiClient* wifiClient;
 
-  void setupWiFi();
-  void setupClient();
-  
   public:
-  MQTTConnection();
-  MQTTResult mqttConnect();
-  MQTTResult mqttPublish(const char* topic, const char* data);
-  MQTTResult mqttPing();
-  
+  MQTTConnection(WiFiClient* wifiClient);
+  void mqttConnect();
+  void mqttPublish(const char* topic, const char* data);
+
 };
