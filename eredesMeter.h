@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "secrets.h"
+
 #define EREDES_BAUD 9300
 #define EREDES_RX_PIN 4
 #define EREDES_TX_PIN 5
@@ -21,56 +23,30 @@
  * r01 44 0301 ??
  */
 
-class InstantVoltageCurrentResponse {
+enum EredesType { Integer = 1, Long = 2, Double = 4 };
+
+class MODBUSMessage {
   public:
-  double voltage;
-  double current;
-  double frequency;
+  byte data[256];
+  uint8_t size;
+  byte getAddress();
+  byte getFunction();
+  uint16_t getCRC(); 
 };
-
-class TotalPowerResponse {
-  public:
-  double energyImport;
-  double energyExport;
-  double powerFactor;
-};
-
-class ClockResponse {
-  public:
-  uint16_t year;
-  uint8_t month;
-  uint8_t dayMonth;
-  uint8_t dayWeek;
-  uint8_t hours;
-  uint8_t minutes;
-  uint8_t seconds;
-  uint8_t hseconds;
-  int16_t deviation;
-  uint8_t status;
-};
-
-class TariffResponse {
-  public: 
-  double vazio;
-  double ponta;
-  double cheias;
-  double totalImport;
-  double totalExport;
-  uint8_t tariff;
-};
-
+ 
 class EredesMeterConnection {
   
   private:
+  byte requestBuffer[8] = { 0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+  MODBUSMessage* messageBuffer;
   SoftwareSerial* serialConnection;
-  void writeRequest(byte* request, uint8_t length);
-  void readResponse(byte* data);
+  void writeRequest(byte* request);
+  void readResponse(MODBUSMessage* message);
+  void debugPrint(MODBUSMessage* message);
+  void computeRequestCRC(byte* request);
   
   public:
   EredesMeterConnection();
-  void getClock(ClockResponse* response);
-  void getVoltageAndCurrent(InstantVoltageCurrentResponse* response);
-  void getTotalPower(TotalPowerResponse* response);
-  void getTariff(TariffResponse* response);
+  void readRegisters(void* result, uint16_t start, uint16_t length, EredesType type);
   
 };
