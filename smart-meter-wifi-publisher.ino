@@ -4,11 +4,13 @@
 #include "secrets.h"
 #include "eredesMeter.h"
 #include "mqtt.h"
+#include "wifi.h"
 
 // USB
 #define USB_BAUD 115200
 
 struct Context {
+  WiFiClient* wifiClient = NULL;
   MQTTConnection* mqttConnection = NULL;
   EredesMeterConnection* meterConnection = NULL;
   InstantVoltageCurrentResponse vr;
@@ -17,15 +19,23 @@ struct Context {
   ClockResponse cr;
 } context;
 
+void setupWiFi() {
+  context.wifiClient = createWiFiConnection();
+}
+
 void setupSerial() {
    Serial.begin(USB_BAUD);
 }
 
 void setup() {
+
+  setupWiFi();
+  delay(100);
+  
   setupSerial();
   delay(100);
 
-  context.mqttConnection = new MQTTConnection();
+  context.mqttConnection = new MQTTConnection(context.wifiClient);
   delay(100);
 
   context.meterConnection = new EredesMeterConnection();
@@ -74,6 +84,7 @@ void sendMachineStatus(){
   context.meterConnection->getClock(&context.cr);
   delay(500);
 
+  json["ver"] = VERSION;
   json["mem"] = ESP.getFreeHeap();
   json["net"] = WiFi.RSSI();
   json["yea"] = context.cr.year;
