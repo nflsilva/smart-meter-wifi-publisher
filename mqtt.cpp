@@ -20,7 +20,8 @@ void MQTTConnection::setupWiFi() {
   if (WIFI_USE_STATIC_IP && !WiFi.config(staticIP, gateway, subnet, primaryDNS, secondaryDNS)) {
     Serial.println("STA Failed to configure");
   }
-  
+
+  WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);

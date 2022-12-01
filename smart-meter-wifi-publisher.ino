@@ -1,4 +1,5 @@
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
 #include <string>
 
 #include "secrets.h"
@@ -29,6 +30,9 @@ void setup() {
   delay(100);
 
   context.meterConnection = new EredesMeterConnection();
+  delay(100);
+
+  setupOTA();
   delay(100);
 }
 
@@ -74,6 +78,7 @@ void sendMachineStatus(){
   context.meterConnection->getClock(&context.cr);
   delay(500);
 
+  json["ver"] = VERSION;
   json["mem"] = ESP.getFreeHeap();
   json["net"] = WiFi.RSSI();
   json["yea"] = context.cr.year;
@@ -92,11 +97,59 @@ void sendMachineStatus(){
   context.mqttConnection->mqttPublish("tele/powermeter/status", data);
 }
 
+void setupOTA() {
+  
+  ArduinoOTA.setPort(8080);
+  ArduinoOTA.setHostname("tasduino");
+  
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else { // U_FS
+      type = "filesystem";
+    }
+
+    // NOTE: if updating FS this would be the place to unmount FS using FS.end()
+    Serial.println("Start updating " + type);
+  });
+  
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println("Auth Failed");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println("Begin Failed");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println("Connect Failed");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println("Receive Failed");
+    } else if (error == OTA_END_ERROR) {
+      Serial.println("End Failed");
+    }
+  });
+  
+  ArduinoOTA.begin();
+  
+}
+
 void loop() {
 
   sendConsumptionStatus();
-  
   sendMachineStatus();
+  
+  // 150sec = 2.5min
+  for(int s=0; s < 150; s++) {
+      ArduinoOTA.handle();
+      delay(1000);
+  }
 
-  delay(6000);
 }
