@@ -93,8 +93,8 @@ void sendConsumptionStatus() {
   DynamicJsonDocument json(1024);
   char data[1024];
   
-  json["vol"] = (double)context.valueBuffer[0];
-  json["cur"] = (double)context.valueBuffer[1];
+  json["vol"] = (double)context.valueBuffer[0] / 10;
+  json["cur"] = (double)context.valueBuffer[1] / 10;
   
   serializeJsonPretty(json, data);
   

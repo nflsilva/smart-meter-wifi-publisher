@@ -42,19 +42,10 @@ void EredesMeterConnection::readResponse(MODBUSMessage* message) {
 
 void EredesMeterConnection::debugPrint(MODBUSMessage* message) {
   // Fast debug
-  Serial.print(message->getAddress(), HEX);
-  Serial.print(" ");
-  Serial.print(message->getFunction(), HEX);
-  Serial.print(" ");
-  /*
-  Serial.print(length, DEC);
-  Serial.print(" ");
-  for(uint8_t i=0;i<length;i++){
-    Serial.print(data[i], DEC);
-    Serial.print(".");
+  for(uint8_t i=0;i<message->size;i++){
+    Serial.print(message->data[i], HEX);
   }
-  Serial.print(" ");*/
-  Serial.println(message->getCRC(), HEX);
+  Serial.print("\n");
 }
 
 void EredesMeterConnection::computeRequestCRC(byte* request) {
@@ -96,7 +87,7 @@ void EredesMeterConnection::readRegisters(uint32_t* result, uint16_t start, uint
   
   for(uint16_t b = 0; b < length; b++) {
     for(uint8_t i = 0; i < type; i++) {
-      result[b] |= (messageBuffer->data[b * type + i] << 8 * (type - i - 1)); 
+      result[b] |= (messageBuffer->data[3 + b * type + i] << 8 * (type - i - 1)); 
     }
   }
   
