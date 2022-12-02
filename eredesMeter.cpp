@@ -56,7 +56,7 @@ void EredesMeterConnection::computeRequestCRC(byte* request) {
   
 };
 
-bool EredesMeterConnection::readRegisters(uint32_t* result, uint16_t start, uint16_t length, EredesType type) {
+void EredesMeterConnection::readRegisters(StaticJsonDocument<JSON_SIZE>* result, uint16_t start, uint16_t length, EredesType type, String* names) {
 
   requestBuffer[2] = start >> 8;
   requestBuffer[3] = start;
@@ -65,23 +65,27 @@ bool EredesMeterConnection::readRegisters(uint32_t* result, uint16_t start, uint
   computeRequestCRC(requestBuffer);
 
   writeRequest(requestBuffer);
+  
+  MODBUSMessage messageBuffer;
   readResponse(&messageBuffer);
 
   // handle exception; just send the content 
   byte functionCode = messageBuffer.data[1];
   if(functionCode != 0x4) {
-    result[0] = 0xdeadbeef;
-    for(uint8_t i = 0; i < messageBuffer.size; i++) {
-      result[1 + i] = messageBuffer.data[i];
+    String fieldName = "exception";
+    for(uint16_t i = 0; i <length; i++) {
+      fieldName += "-" + names[i];
     }
-    return false;
+    (*result)[fieldName] = messageBuffer.data[2];
+    return;
   }
-  
+    
   for(uint16_t b = 0; b < length; b++) {
+    uint32_t value = 0;
     for(uint8_t i = 0; i < type; i++) {
-      result[b] |= (messageBuffer.data[3 + b * type + i] << 8 * (type - i - 1)); 
+      value |= (messageBuffer.data[3 + b * type + i] << 8 * (type - i - 1)); 
     }
+    (*result)[names[b]] = value;
   }
-  return true;
   
 }

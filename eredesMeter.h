@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SoftwareSerial.h>
+#include <ArduinoJson.h>
 #include <stdint.h>
 #include <stddef.h>
 
@@ -9,19 +10,6 @@
 #define EREDES_BAUD 9300
 #define EREDES_RX_PIN 4
 #define EREDES_TX_PIN 5
-
-/*
- * r01 04 0001 0001
- * r01 04 006C 0002
- * 
- * r01 04 0016 0002
- * 
- * r01 04 0026 0003
- * r01 04 0079 0003
- * r01 04 007F 0002
- * r01 04 000B 0002
- * r01 44 0301 ??
- */
 
 enum EredesType { Integer = 1, Long = 2, Double = 4 };
 
@@ -34,8 +22,7 @@ class EredesMeterConnection {
   
   private:
   byte requestBuffer[8] = { 0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-  MODBUSMessage messageBuffer;
-  SoftwareSerial* serialConnection;
+  SoftwareSerial* serialConnection = NULL;
   void writeRequest(byte* request);
   void readResponse(MODBUSMessage* message);
   void debugPrint(MODBUSMessage* message);
@@ -43,6 +30,6 @@ class EredesMeterConnection {
   
   public:
   EredesMeterConnection();
-  bool readRegisters(uint32_t* result, uint16_t start, uint16_t length, EredesType type);
+  void readRegisters(StaticJsonDocument<JSON_SIZE>* result, uint16_t start, uint16_t length, EredesType type, String* names);
   
 };

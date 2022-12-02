@@ -1,3 +1,7 @@
+// USB
+#define USB_BAUD 115200
+
+#define ARDUINOJSON_ENABLE_ARDUINO_STRING 1
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <string>
@@ -7,14 +11,11 @@
 #include "mqtt.h"
 #include "wifi.h"
 
-// USB
-#define USB_BAUD 115200
-
 struct Context {
   WiFiClient* wifiClient = NULL;
   MQTTConnection* mqttConnection = NULL;
   EredesMeterConnection* meterConnection = NULL;
-  uint32_t* valueBuffer = NULL; 
+  StaticJsonDocument<JSON_SIZE> json;
 } context;
 
 void setupWiFi() {
@@ -81,30 +82,25 @@ void setup() {
   delay(100);
 
   context.meterConnection = new EredesMeterConnection();
-  context.valueBuffer = new uint32_t[512];
   delay(100);
 
   setupOTA();
   delay(100);
 }
 
-void sendConsumptionStatus() {
+void sendConsumptionStatus(JsonDocument* json) {
 
-  DynamicJsonDocument json(1024);
   char data[1024];
-  
-  json["vol"] = (double)context.valueBuffer[0] / 10;
-  json["cur"] = (double)context.valueBuffer[1] / 10;
-  
-  serializeJsonPretty(json, data);
+  serializeJsonPretty(*json, data);
   
   context.mqttConnection->mqttConnect();
   
   Serial.print("Consumption: "); Serial.println(data);
   context.mqttConnection->mqttPublish("tele/powermeter/consumption", data);
   
-}
+};
 
+/*
 void sendOtherStatus() {
 
   DynamicJsonDocument json(1024);
@@ -137,19 +133,16 @@ void sendException() {
   context.mqttConnection->mqttPublish("tele/powermeter/consumption", data);
   
 }
-
+*/
 void loop() {
 
-  memset(context.valueBuffer, 0, sizeof(context.valueBuffer));
-  if(context.meterConnection->readRegisters(context.valueBuffer, 0x006c, 2, Long)) {
-    sendConsumptionStatus();
-  }
-  else {
-    Serial.printf("Exception: %x - %x\n", context.valueBuffer[0], context.valueBuffer[3]);
-  }
-  delay(500);
+  String names[2] = { "vol", "cur" };
+  context.meterConnection->readRegisters(&context.json, 0x006c, 2, Long, names);
+  //Serial.printf("Exception: %x - %x\n", context.valueBuffer[0], context.valueBuffer[3]);
 
-  memset(context.valueBuffer, 0, sizeof(context.valueBuffer));
+  sendConsumptionStatus(&context.json);
+
+  /*
   if(context.meterConnection->readRegisters(context.valueBuffer, 0x8886c, 60, Long)) {
     sendConsumptionStatus();
   }
@@ -158,13 +151,12 @@ void loop() {
   }
 
   delay(500);
-  memset(context.valueBuffer, 0, sizeof(context.valueBuffer));
   if(context.meterConnection->readRegisters(context.valueBuffer, 0x002c, 1, Double)) {
     sendOtherStatus();
   }
   else {
     Serial.printf("Exception: %x - %x\n", context.valueBuffer[0], context.valueBuffer[3]);
-  }
+  }*/
   
   
   // 150sec = 2.5min
