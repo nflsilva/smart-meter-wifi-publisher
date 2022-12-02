@@ -25,20 +25,16 @@
 
 enum EredesType { Integer = 1, Long = 2, Double = 4 };
 
-class MODBUSMessage {
-  public:
+struct MODBUSMessage {
   byte data[256];
   uint8_t size;
-  byte getAddress();
-  byte getFunction();
-  uint16_t getCRC(); 
 };
 
 class EredesMeterConnection {
   
   private:
   byte requestBuffer[8] = { 0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-  MODBUSMessage* messageBuffer;
+  MODBUSMessage messageBuffer;
   SoftwareSerial* serialConnection;
   void writeRequest(byte* request);
   void readResponse(MODBUSMessage* message);
@@ -47,6 +43,6 @@ class EredesMeterConnection {
   
   public:
   EredesMeterConnection();
-  void readRegisters(uint32_t* result, uint16_t start, uint16_t length, EredesType type);
+  bool readRegisters(uint32_t* result, uint16_t start, uint16_t length, EredesType type);
   
 };

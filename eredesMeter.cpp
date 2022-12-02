@@ -1,20 +1,6 @@
 #include "eredesMeter.h"
 
-byte MODBUSMessage::getAddress() {
-  return this->data[0];
-};
-
-byte MODBUSMessage::getFunction() {
-  return this->data[1];
-};
-
-uint16_t MODBUSMessage::getCRC() {
-  if(size < 2) return 0;
-  return this->data[size-2];
-};
-
 EredesMeterConnection::EredesMeterConnection() {
-  messageBuffer = new MODBUSMessage();
   serialConnection = new SoftwareSerial(EREDES_RX_PIN, EREDES_TX_PIN);
   pinMode(EREDES_RX_PIN, INPUT);
   pinMode(EREDES_TX_PIN, OUTPUT);
@@ -70,7 +56,7 @@ void EredesMeterConnection::computeRequestCRC(byte* request) {
   
 };
 
-void EredesMeterConnection::readRegisters(uint32_t* result, uint16_t start, uint16_t length, EredesType type) {
+bool EredesMeterConnection::readRegisters(uint32_t* result, uint16_t start, uint16_t length, EredesType type) {
 
   requestBuffer[2] = start >> 8;
   requestBuffer[3] = start;
@@ -79,16 +65,23 @@ void EredesMeterConnection::readRegisters(uint32_t* result, uint16_t start, uint
   computeRequestCRC(requestBuffer);
 
   writeRequest(requestBuffer);
-  readResponse(messageBuffer);
+  readResponse(&messageBuffer);
 
-  // handle exception; return if there's any; 
-
-  
+  // handle exception; just send the content 
+  byte functionCode = messageBuffer.data[1];
+  if(functionCode != 0x4) {
+    result[0] = 0xdeadbeef;
+    for(uint8_t i = 0; i < messageBuffer.size; i++) {
+      result[1 + i] = messageBuffer.data[i];
+    }
+    return false;
+  }
   
   for(uint16_t b = 0; b < length; b++) {
     for(uint8_t i = 0; i < type; i++) {
-      result[b] |= (messageBuffer->data[3 + b * type + i] << 8 * (type - i - 1)); 
+      result[b] |= (messageBuffer.data[3 + b * type + i] << 8 * (type - i - 1)); 
     }
   }
+  return true;
   
 }

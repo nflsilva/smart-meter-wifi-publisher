@@ -71,12 +71,12 @@ void setupOTA() {
 
 void setup() {
 
-  setupWiFi();
-  delay(100);
-  
   setupSerial();
   delay(100);
 
+  setupWiFi();
+  delay(100);
+  
   context.mqttConnection = new MQTTConnection(context.wifiClient);
   delay(100);
 
@@ -105,10 +105,67 @@ void sendConsumptionStatus() {
   
 }
 
+void sendOtherStatus() {
+
+  DynamicJsonDocument json(1024);
+  char data[1024];
+  
+  json["tim"] = (double)context.valueBuffer[0] / 1000;
+  
+  serializeJsonPretty(json, data);
+  
+  context.mqttConnection->mqttConnect();
+  
+  Serial.print("Consumption: "); Serial.println(data);
+  context.mqttConnection->mqttPublish("tele/powermeter/consumption", data);
+  
+}
+
+void sendException() {
+
+  DynamicJsonDocument json(1024);
+  char data[1024];
+  
+  json["vol"] = (double)context.valueBuffer[0] / 10;
+  json["cur"] = (double)context.valueBuffer[1] / 10;
+  
+  serializeJsonPretty(json, data);
+  
+  context.mqttConnection->mqttConnect();
+  
+  Serial.print("Consumption: "); Serial.println(data);
+  context.mqttConnection->mqttPublish("tele/powermeter/consumption", data);
+  
+}
+
 void loop() {
 
-  context.meterConnection->readRegisters(context.valueBuffer, 0x006c, 2, Long);
-  sendConsumptionStatus();
+  memset(context.valueBuffer, 0, sizeof(context.valueBuffer));
+  if(context.meterConnection->readRegisters(context.valueBuffer, 0x006c, 2, Long)) {
+    sendConsumptionStatus();
+  }
+  else {
+    Serial.printf("Exception: %x - %x\n", context.valueBuffer[0], context.valueBuffer[3]);
+  }
+  delay(500);
+
+  memset(context.valueBuffer, 0, sizeof(context.valueBuffer));
+  if(context.meterConnection->readRegisters(context.valueBuffer, 0x8886c, 60, Long)) {
+    sendConsumptionStatus();
+  }
+  else {
+    Serial.printf("Exception: %x - %x\n", context.valueBuffer[0], context.valueBuffer[3]);
+  }
+
+  delay(500);
+  memset(context.valueBuffer, 0, sizeof(context.valueBuffer));
+  if(context.meterConnection->readRegisters(context.valueBuffer, 0x002c, 1, Double)) {
+    sendOtherStatus();
+  }
+  else {
+    Serial.printf("Exception: %x - %x\n", context.valueBuffer[0], context.valueBuffer[3]);
+  }
+  
   
   // 150sec = 2.5min
   for(int s=0; s < 150; s++) {
