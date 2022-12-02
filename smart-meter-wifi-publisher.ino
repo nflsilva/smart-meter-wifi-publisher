@@ -14,6 +14,7 @@ struct Context {
   WiFiClient* wifiClient = NULL;
   MQTTConnection* mqttConnection = NULL;
   EredesMeterConnection* meterConnection = NULL;
+  uint32_t* valueBuffer = NULL; 
 } context;
 
 void setupWiFi() {
@@ -80,18 +81,39 @@ void setup() {
   delay(100);
 
   context.meterConnection = new EredesMeterConnection();
+  context.valueBuffer = new uint32_t[512];
   delay(100);
 
   setupOTA();
   delay(100);
 }
 
+void sendConsumptionStatus() {
+
+  DynamicJsonDocument json(1024);
+  char data[1024];
+  
+  json["vol"] = (double)context.valueBuffer[0];
+  json["cur"] = (double)context.valueBuffer[1];
+  
+  serializeJsonPretty(json, data);
+  
+  context.mqttConnection->mqttConnect();
+  
+  Serial.print("Consumption: "); Serial.println(data);
+  context.mqttConnection->mqttPublish("tele/powermeter/consumption", data);
+  
+}
+
 void loop() {
+
+  context.meterConnection->readRegisters(context.valueBuffer, 0x006c, 2, Long);
+  sendConsumptionStatus();
   
   // 150sec = 2.5min
   for(int s=0; s < 150; s++) {
     ArduinoOTA.handle();
-    delay(1000);
+    delay(100);
   }
 
 }

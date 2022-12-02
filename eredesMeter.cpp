@@ -79,35 +79,25 @@ void EredesMeterConnection::computeRequestCRC(byte* request) {
   
 };
 
-void EredesMeterConnection::readRegisters(void* result, uint16_t start, uint16_t length, EredesType type) {
+void EredesMeterConnection::readRegisters(uint32_t* result, uint16_t start, uint16_t length, EredesType type) {
 
   requestBuffer[2] = start >> 8;
   requestBuffer[3] = start;
   requestBuffer[4] = length >> 8;
   requestBuffer[5] = length;
-  
   computeRequestCRC(requestBuffer);
 
   writeRequest(requestBuffer);
   readResponse(messageBuffer);
 
-  // handle exception; return if there's any;
+  // handle exception; return if there's any; 
+
   
-  switch(type) {
-    case Integer:
-    break;
-    case Long:
-    break;
-    case Double:
-    break;
-    default:
-    break;
-  
-    
-  }
   
   for(uint16_t b = 0; b < length; b++) {
-    //result[b] = messageBuffer->data[3 + b] 
+    for(uint8_t i = 0; i < type; i++) {
+      result[b] |= (messageBuffer->data[b * type + i] << 8 * (type - i - 1)); 
+    }
   }
   
 }

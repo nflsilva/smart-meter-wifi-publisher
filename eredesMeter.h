@@ -33,7 +33,7 @@ class MODBUSMessage {
   byte getFunction();
   uint16_t getCRC(); 
 };
- 
+
 class EredesMeterConnection {
   
   private:
@@ -47,6 +47,6 @@ class EredesMeterConnection {
   
   public:
   EredesMeterConnection();
-  void readRegisters(void* result, uint16_t start, uint16_t length, EredesType type);
+  void readRegisters(uint32_t* result, uint16_t start, uint16_t length, EredesType type);
   
 };
