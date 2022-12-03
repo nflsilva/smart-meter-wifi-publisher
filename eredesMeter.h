@@ -3,7 +3,7 @@
 #include <SoftwareSerial.h>
 #include <ArduinoJson.h>
 #include <stdint.h>
-#include <stddef.h>
+#include <initializer_list>
 
 #include "secrets.h"
 
@@ -11,7 +11,7 @@
 #define EREDES_RX_PIN 4
 #define EREDES_TX_PIN 5
 
-enum EredesType { Integer = 1, Long = 2, Double = 4 };
+enum EredesType { Clock = 0, Integer = 1, Long = 2, Double = 4 };
 
 struct MODBUSMessage {
   byte data[256];
@@ -27,9 +27,12 @@ class EredesMeterConnection {
   void readResponse(MODBUSMessage* message);
   void debugPrint(MODBUSMessage* message);
   void computeRequestCRC(byte* request);
+  void buildRequest(byte* request, uint16_t start, uint16_t length);
+  void handleException(StaticJsonDocument<JSON_SIZE>* result, MODBUSMessage* messageBuffer, std::initializer_list<String> names);
+  void handlePrimiteTypes(StaticJsonDocument<JSON_SIZE>* result, MODBUSMessage* messageBuffer, uint16_t scalar, EredesType type, std::initializer_list<String> names);
   
   public:
   EredesMeterConnection();
-  void readRegisters(StaticJsonDocument<JSON_SIZE>* result, uint16_t start, uint16_t length, EredesType type, String* names);
+  void readRegisters(StaticJsonDocument<JSON_SIZE>* result, uint16_t start, uint16_t scalar, EredesType type, std::initializer_list<String> names);
   
 };

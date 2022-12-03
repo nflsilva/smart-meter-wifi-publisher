@@ -15,22 +15,30 @@ struct Context {
   WiFiClient* wifiClient = NULL;
   MQTTConnection* mqttConnection = NULL;
   EredesMeterConnection* meterConnection = NULL;
-  StaticJsonDocument<JSON_SIZE> json;
+  StaticJsonDocument<JSON_SIZE> consumptionJson;
+  StaticJsonDocument<JSON_SIZE> statusJson;
 } context;
-
-void setupWiFi() {
-  context.wifiClient = createWiFiConnection();
-}
 
 void setupSerial() {
   Serial.begin(USB_BAUD);
 }
 
+void setupWiFi() {
+  context.wifiClient = createWiFiConnection();
+}
+
+void setupContext() {
+  context.mqttConnection = new MQTTConnection(context.wifiClient);
+  context.meterConnection = new EredesMeterConnection();
+  context.statusJson["ver"] = VERSION;
+}
+
 void setupOTA() {
   
-  ArduinoOTA.setPort(8080);
-  ArduinoOTA.setHostname("tasduino");
+  ArduinoOTA.setPort(OTA_PORT);
+  ArduinoOTA.setHostname(OTA_HOSTNAME);
   
+#if DEBUG
   ArduinoOTA.onStart([]() {
     String type;
     if (ArduinoOTA.getCommand() == U_FLASH) {
@@ -65,7 +73,8 @@ void setupOTA() {
       Serial.println("End Failed");
     }
   });
-  
+#endif
+ 
   ArduinoOTA.begin();
   
 }
@@ -73,30 +82,20 @@ void setupOTA() {
 void setup() {
 
   setupSerial();
-  delay(100);
-
   setupWiFi();
-  delay(100);
-  
-  context.mqttConnection = new MQTTConnection(context.wifiClient);
-  delay(100);
-
-  context.meterConnection = new EredesMeterConnection();
-  delay(100);
-
+  setupContext();
   setupOTA();
-  delay(100);
 }
 
-void sendConsumptionStatus(JsonDocument* json) {
+void publishData(JsonDocument* json, String topic) {
 
-  char data[1024];
+  char data[JSON_SIZE];
   serializeJsonPretty(*json, data);
   
   context.mqttConnection->mqttConnect();
   
   Serial.print("Consumption: "); Serial.println(data);
-  context.mqttConnection->mqttPublish("tele/powermeter/consumption", data);
+  context.mqttConnection->mqttPublish(topic.c_str(), data);
   
 };
 
@@ -136,33 +135,25 @@ void sendException() {
 */
 void loop() {
 
-  String names[2] = { "vol", "cur" };
-  context.meterConnection->readRegisters(&context.json, 0x006c, 2, Long, names);
-  //Serial.printf("Exception: %x - %x\n", context.valueBuffer[0], context.valueBuffer[3]);
-
-  sendConsumptionStatus(&context.json);
-
-  /*
-  if(context.meterConnection->readRegisters(context.valueBuffer, 0x8886c, 60, Long)) {
-    sendConsumptionStatus();
-  }
-  else {
-    Serial.printf("Exception: %x - %x\n", context.valueBuffer[0], context.valueBuffer[3]);
-  }
-
-  delay(500);
-  if(context.meterConnection->readRegisters(context.valueBuffer, 0x002c, 1, Double)) {
-    sendOtherStatus();
-  }
-  else {
-    Serial.printf("Exception: %x - %x\n", context.valueBuffer[0], context.valueBuffer[3]);
-  }*/
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x006c, 10, Long, { "vol", "cur" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x007f, 10, Long, { "fre" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x0016, 1000, Double, { "api", "ape" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x007b, 1000, Long, { "pf" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x0026, 1000, Double, { "vaz", "pon", "che" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x000b, 1, Integer, { "tar" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x002c, 1000, Double, { "tim" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x0033, 1000, Double, { "tex" });
+  publishData(&context.consumptionJson, "tele/powermeter/consumption");
   
-  
+  context.meterConnection->readRegisters(&context.statusJson, 0x0001, 1, Integer, { "", "", "", "", "", "hou", "min", "sec" });
+  context.statusJson["mem"] = ESP.getFreeHeap();
+  context.statusJson["net"] = WiFi.RSSI();
+  publishData(&context.statusJson, "tele/powermeter/status");
+
   // 150sec = 2.5min
   for(int s=0; s < 150; s++) {
     ArduinoOTA.handle();
-    delay(100);
+    delay(1000);
   }
 
 }

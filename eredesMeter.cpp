@@ -56,14 +56,39 @@ void EredesMeterConnection::computeRequestCRC(byte* request) {
   
 };
 
-void EredesMeterConnection::readRegisters(StaticJsonDocument<JSON_SIZE>* result, uint16_t start, uint16_t length, EredesType type, String* names) {
-
-  requestBuffer[2] = start >> 8;
-  requestBuffer[3] = start;
-  requestBuffer[4] = length >> 8;
-  requestBuffer[5] = length;
+void EredesMeterConnection::buildRequest(byte* request, uint16_t start, uint16_t length) {
+  request[2] = start >> 8;
+  request[3] = start;
+  request[4] = length >> 8;
+  request[5] = length;
   computeRequestCRC(requestBuffer);
+}
 
+void EredesMeterConnection::handleException(StaticJsonDocument<JSON_SIZE>* result, MODBUSMessage* messageBuffer, std::initializer_list<String> names) {
+  String fieldName = "exception";
+  for (String name : names) {
+    fieldName += "-" + name;
+  }
+  (*result)[fieldName] = messageBuffer->data[2];
+}
+
+void EredesMeterConnection::handlePrimiteTypes(StaticJsonDocument<JSON_SIZE>* result, MODBUSMessage* messageBuffer, uint16_t scalar, EredesType type, std::initializer_list<String> names) {
+  uint16_t b = 0;
+  for (String name : names) {
+    if(name != "") {
+      uint32_t value = 0;
+      for(uint8_t i = 0; i < type; i++) {
+        value |= (messageBuffer->data[3 + b * type + i] << 8 * (type - i - 1)); 
+      }
+      (*result)[name] = (double)value / scalar;
+    }
+    b++;
+  }
+}
+
+void EredesMeterConnection::readRegisters(StaticJsonDocument<JSON_SIZE>* result, uint16_t start, uint16_t scalar, EredesType type, std::initializer_list<String> names) {
+  
+  buildRequest(requestBuffer, start, names.size());
   writeRequest(requestBuffer);
   
   MODBUSMessage messageBuffer;
@@ -72,20 +97,9 @@ void EredesMeterConnection::readRegisters(StaticJsonDocument<JSON_SIZE>* result,
   // handle exception; just send the content 
   byte functionCode = messageBuffer.data[1];
   if(functionCode != 0x4) {
-    String fieldName = "exception";
-    for(uint16_t i = 0; i <length; i++) {
-      fieldName += "-" + names[i];
-    }
-    (*result)[fieldName] = messageBuffer.data[2];
+    handleException(result, &messageBuffer, names);
     return;
   }
-    
-  for(uint16_t b = 0; b < length; b++) {
-    uint32_t value = 0;
-    for(uint8_t i = 0; i < type; i++) {
-      value |= (messageBuffer.data[3 + b * type + i] << 8 * (type - i - 1)); 
-    }
-    (*result)[names[b]] = value;
-  }
-  
+
+  handlePrimiteTypes(result, &messageBuffer, scalar, type, names);
 }
