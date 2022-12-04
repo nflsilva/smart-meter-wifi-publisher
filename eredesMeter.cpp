@@ -34,26 +34,23 @@ void EredesMeterConnection::debugPrint(MODBUSMessage* message) {
   Serial.print("\n");
 }
 
-void EredesMeterConnection::computeRequestCRC(byte* request) {
-  uint16_t crc = 0xFFFF;
+uint16_t EredesMeterConnection::computeCRC(byte* request, uint16_t lenght) {
+  uint16_t crc = 0xffff;
  
-  for (uint8_t pos = 0; pos < 6; pos++) {
+  for (uint8_t pos = 0; pos < lenght; pos++) {
     crc ^= (uint16_t)request[pos];
  
     for (uint8_t i = 8; i != 0; i--) {
       if ((crc & 0x0001) != 0) { 
         crc >>= 1; 
-        crc ^= 0xA001;
+        crc ^= 0xa001;
       }
       else {
         crc >>= 1;
       }
     }
   }
-
-  requestBuffer[6] = crc;
-  requestBuffer[7] = crc >> 8;
-  
+  return crc;  
 };
 
 void EredesMeterConnection::buildRequest(byte* request, uint16_t start, uint16_t length) {
@@ -61,15 +58,27 @@ void EredesMeterConnection::buildRequest(byte* request, uint16_t start, uint16_t
   request[3] = start;
   request[4] = length >> 8;
   request[5] = length;
-  computeRequestCRC(requestBuffer);
+  uint16_t crc = computeCRC(requestBuffer, 6);
+  requestBuffer[6] = crc;
+  requestBuffer[7] = crc >> 8;
 }
 
 void EredesMeterConnection::handleException(StaticJsonDocument<JSON_SIZE>* result, MODBUSMessage* messageBuffer, std::initializer_list<String> names) {
-  String fieldName = "exception";
+  String fieldName = "e";
   for (String name : names) {
     fieldName += "-" + name;
   }
   (*result)[fieldName] = messageBuffer->data[2];
+}
+
+void EredesMeterConnection::handleCRCError(StaticJsonDocument<JSON_SIZE>* result, MODBUSMessage* messageBuffer, uint16_t actual, uint16_t expected, std::initializer_list<String> names) {
+  String fieldName = "t";
+  for (String name : names) {
+    fieldName += "-" + name;
+  }
+  (*result)[fieldName + "-e"] = expected;
+  (*result)[fieldName + "-a"] = actual;
+  (*result)[fieldName + "-ml"] = messageBuffer->size;
 }
 
 void EredesMeterConnection::handlePrimiteTypes(StaticJsonDocument<JSON_SIZE>* result, MODBUSMessage* messageBuffer, uint16_t scalar, EredesType type, std::initializer_list<String> names) {
@@ -94,7 +103,15 @@ void EredesMeterConnection::readRegisters(StaticJsonDocument<JSON_SIZE>* result,
   MODBUSMessage messageBuffer;
   readResponse(&messageBuffer);
 
-  // handle exception; just send the content 
+  /* validate crc; send expected and actual;
+  uint16_t expectedCRC = computeCRC(messageBuffer.data, messageBuffer.size - 2);
+  uint16_t actualCRC = messageBuffer.data[messageBuffer.size - 1] << 8 |  messageBuffer.data[messageBuffer.size - 2];
+  if(expectedCRC != actualCRC) {
+    handleCRCError(result, &messageBuffer, actualCRC, expectedCRC, names);
+    return;
+  }*/
+  
+  // handle exception; just send the exception code; 
   byte functionCode = messageBuffer.data[1];
   if(functionCode != 0x4) {
     handleException(result, &messageBuffer, names);

@@ -87,73 +87,35 @@ void setup() {
   setupOTA();
 }
 
-void publishData(JsonDocument* json, String topic) {
-
-  char data[JSON_SIZE];
-  serializeJsonPretty(*json, data);
-  
-  context.mqttConnection->mqttConnect();
-  
-  Serial.print("Consumption: "); Serial.println(data);
-  context.mqttConnection->mqttPublish(topic.c_str(), data);
-  
-};
-
-/*
-void sendOtherStatus() {
-
-  DynamicJsonDocument json(1024);
-  char data[1024];
-  
-  json["tim"] = (double)context.valueBuffer[0] / 1000;
-  
-  serializeJsonPretty(json, data);
-  
-  context.mqttConnection->mqttConnect();
-  
-  Serial.print("Consumption: "); Serial.println(data);
-  context.mqttConnection->mqttPublish("tele/powermeter/consumption", data);
-  
-}
-
-void sendException() {
-
-  DynamicJsonDocument json(1024);
-  char data[1024];
-  
-  json["vol"] = (double)context.valueBuffer[0] / 10;
-  json["cur"] = (double)context.valueBuffer[1] / 10;
-  
-  serializeJsonPretty(json, data);
-  
-  context.mqttConnection->mqttConnect();
-  
-  Serial.print("Consumption: "); Serial.println(data);
-  context.mqttConnection->mqttPublish("tele/powermeter/consumption", data);
-  
-}
-*/
-void loop() {
+void publishMeterData() {
+  context.consumptionJson.clear();
+  context.statusJson.clear();
 
   context.meterConnection->readRegisters(&context.consumptionJson, 0x006c, 10, Long, { "vol", "cur" });
   context.meterConnection->readRegisters(&context.consumptionJson, 0x007f, 10, Long, { "fre" });
-  context.meterConnection->readRegisters(&context.consumptionJson, 0x0016, 1000, Double, { "api", "ape" });
   context.meterConnection->readRegisters(&context.consumptionJson, 0x007b, 1000, Long, { "pf" });
   context.meterConnection->readRegisters(&context.consumptionJson, 0x0026, 1000, Double, { "vaz", "pon", "che" });
   context.meterConnection->readRegisters(&context.consumptionJson, 0x000b, 1, Integer, { "tar" });
   context.meterConnection->readRegisters(&context.consumptionJson, 0x002c, 1000, Double, { "tim" });
   context.meterConnection->readRegisters(&context.consumptionJson, 0x0033, 1000, Double, { "tex" });
-  publishData(&context.consumptionJson, "tele/powermeter/consumption");
+  context.mqttConnection->mqttPublish("tele/powermeter/consumption", &context.consumptionJson);
   
   context.meterConnection->readRegisters(&context.statusJson, 0x0001, 1, Integer, { "", "", "", "", "", "hou", "min", "sec" });
   context.statusJson["mem"] = ESP.getFreeHeap();
   context.statusJson["net"] = WiFi.RSSI();
-  publishData(&context.statusJson, "tele/powermeter/status");
+  context.mqttConnection->mqttPublish("tele/powermeter/status", &context.statusJson);
+}
 
+void loop() {
+  
+  //if(context.mqttConnection->mqttIsConnected()) {
+    publishMeterData();
+  //}
+  
   // 150sec = 2.5min
   for(int s=0; s < 150; s++) {
     ArduinoOTA.handle();
     delay(1000);
   }
-
+  
 }

@@ -26,8 +26,9 @@ class EredesMeterConnection {
   void writeRequest(byte* request);
   void readResponse(MODBUSMessage* message);
   void debugPrint(MODBUSMessage* message);
-  void computeRequestCRC(byte* request);
+  uint16_t computeCRC(byte* request, uint16_t lenght);
   void buildRequest(byte* request, uint16_t start, uint16_t length);
+  void handleCRCError(StaticJsonDocument<JSON_SIZE>* result, MODBUSMessage* messageBuffer, uint16_t actual, uint16_t expected, std::initializer_list<String> names);
   void handleException(StaticJsonDocument<JSON_SIZE>* result, MODBUSMessage* messageBuffer, std::initializer_list<String> names);
   void handlePrimiteTypes(StaticJsonDocument<JSON_SIZE>* result, MODBUSMessage* messageBuffer, uint16_t scalar, EredesType type, std::initializer_list<String> names);
   
