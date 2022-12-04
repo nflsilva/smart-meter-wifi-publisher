@@ -11,6 +11,8 @@
 #define EREDES_RX_PIN 4
 #define EREDES_TX_PIN 5
 
+
+// 10:43:41.770 -> Size: 64 :1 4 4C 7 E6 C 4 7 12 2B 30 0 80 0 0 31 37 32 31 31 35 35 38 37 32 0 67 0 2 7 E1 56 30 30 36 35 56 30 30 36 35 56 30 36 36 39 1 7F FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FE 
 enum EredesType { Clock = 0, Integer = 1, Long = 2, Double = 4 };
 
 struct MODBUSMessage {

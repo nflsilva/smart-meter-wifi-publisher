@@ -28,8 +28,10 @@ void EredesMeterConnection::readResponse(MODBUSMessage* message) {
 
 void EredesMeterConnection::debugPrint(MODBUSMessage* message) {
   // Fast debug
+  Serial.printf("Size: %d :", message->size);
   for(uint8_t i=0;i<message->size;i++){
     Serial.print(message->data[i], HEX);
+    Serial.print(" ");
   }
   Serial.print("\n");
 }
@@ -103,13 +105,17 @@ void EredesMeterConnection::readRegisters(StaticJsonDocument<JSON_SIZE>* result,
   MODBUSMessage messageBuffer;
   readResponse(&messageBuffer);
 
-  /* validate crc; send expected and actual;
+  if(messageBuffer.size == 0) {
+    return;
+  }
+
+  // validate crc; send expected and actual;
   uint16_t expectedCRC = computeCRC(messageBuffer.data, messageBuffer.size - 2);
   uint16_t actualCRC = messageBuffer.data[messageBuffer.size - 1] << 8 |  messageBuffer.data[messageBuffer.size - 2];
-  if(expectedCRC != actualCRC) {
+  if(expectedCRC != actualCRC && messageBuffer.size != 64) {
     handleCRCError(result, &messageBuffer, actualCRC, expectedCRC, names);
     return;
-  }*/
+  }
   
   // handle exception; just send the exception code; 
   byte functionCode = messageBuffer.data[1];

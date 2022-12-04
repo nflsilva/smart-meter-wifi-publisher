@@ -115,7 +115,7 @@ void loop() {
   // 150sec = 2.5min
   for(int s=0; s < 150; s++) {
     ArduinoOTA.handle();
-    delay(1000);
+    delay(100);
   }
   
 }
