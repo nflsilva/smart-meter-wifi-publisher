@@ -10,17 +10,22 @@ EredesMeterConnection::EredesMeterConnection() {
 void EredesMeterConnection::writeRequest(byte* request) {
   if(serialConnection == NULL || request == NULL) return;
   serialConnection->write(request, 8);
-  delay(500);
 };
 
 void EredesMeterConnection::readResponse(MODBUSMessage* message) {
   
   message->size = 0;
-  while(serialConnection->available() > 0) {
-    message->data[message->size] = serialConnection->read();
-    message->size += 1;
-  }
-  
+  uint8_t tries = 0;
+  do {
+    delay(20);
+    while(serialConnection->available() > 0) {
+      message->data[message->size] = serialConnection->read();
+      message->size += 1;
+      tries = 0;
+    }
+    tries++;
+  } while(tries < 21);
+
 #if DEBUG
   this->debugPrint(message);
 #endif
@@ -81,6 +86,7 @@ void EredesMeterConnection::handleCRCError(StaticJsonDocument<JSON_SIZE>* result
   (*result)[fieldName + "-e"] = expected;
   (*result)[fieldName + "-a"] = actual;
   (*result)[fieldName + "-ml"] = messageBuffer->size;
+  (*result)[fieldName + "-me"] = messageBuffer->data[2];
 }
 
 void EredesMeterConnection::handlePrimiteTypes(StaticJsonDocument<JSON_SIZE>* result, MODBUSMessage* messageBuffer, uint16_t scalar, EredesType type, std::initializer_list<String> names) {
@@ -112,7 +118,7 @@ void EredesMeterConnection::readRegisters(StaticJsonDocument<JSON_SIZE>* result,
   // validate crc; send expected and actual;
   uint16_t expectedCRC = computeCRC(messageBuffer.data, messageBuffer.size - 2);
   uint16_t actualCRC = messageBuffer.data[messageBuffer.size - 1] << 8 |  messageBuffer.data[messageBuffer.size - 2];
-  if(expectedCRC != actualCRC && messageBuffer.size != 64) {
+  if(expectedCRC != actualCRC) {
     handleCRCError(result, &messageBuffer, actualCRC, expectedCRC, names);
     return;
   }
