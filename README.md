@@ -44,6 +44,14 @@ The connections were done as follows.
 ![Connections](/assets/connections.png?raw=true "Connections")
 
 ## How is this project organized?
+To compile the project, users should install the necessary dependencies.
+
+- ESP8266WiFi.h - used to setup the Wi-Fi Connection.
+- ArduinoJson.h - used to generate the JSON objects to send over the network.
+- ArduinoMqttClient.h - used to connect to the MQTT broker.
+
+
+
 
 
 
