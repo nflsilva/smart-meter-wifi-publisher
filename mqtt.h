@@ -12,10 +12,13 @@ class MQTTConnection {
   private:
   MqttClient* mqtt;
   WiFiClient* wifiClient;
+  bool hasValidServer;
 
   public:
   MQTTConnection(WiFiClient* wifiClient);
   void mqttConnect();
-  void mqttPublish(const char* topic, const char* data);
+  void mqttPublish(String topic, char* data);
+  void mqttPublish(String topic, JsonDocument* json);
+  bool mqttIsConnected();
 
 };

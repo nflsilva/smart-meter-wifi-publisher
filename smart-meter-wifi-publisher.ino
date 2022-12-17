@@ -7,111 +7,36 @@
 #include "mqtt.h"
 #include "wifi.h"
 
-// USB
-#define USB_BAUD 115200
+ADC_MODE(ADC_VCC);
 
 struct Context {
   WiFiClient* wifiClient = NULL;
   MQTTConnection* mqttConnection = NULL;
   EredesMeterConnection* meterConnection = NULL;
-  InstantVoltageCurrentResponse vr;
-  TotalPowerResponse tpr;
-  TariffResponse trr;
-  ClockResponse cr;
+  StaticJsonDocument<JSON_SIZE> consumptionJson;
+  StaticJsonDocument<JSON_SIZE> statusJson;
 } context;
+
+void setupSerial() {
+  Serial.begin(USB_BAUD);
+}
 
 void setupWiFi() {
   context.wifiClient = createWiFiConnection();
 }
 
-void setupSerial() {
-   Serial.begin(USB_BAUD);
-}
-
-void setup() {
-
-  setupWiFi();
-  delay(100);
-  
-  setupSerial();
-  delay(100);
-
+void setupContext() {
   context.mqttConnection = new MQTTConnection(context.wifiClient);
-  delay(100);
-
   context.meterConnection = new EredesMeterConnection();
-  delay(100);
-
-  setupOTA();
-  delay(100);
-}
-
-void sendConsumptionStatus(){
-
-  DynamicJsonDocument json(1024);
-  
-  context.meterConnection->getVoltageAndCurrent(&context.vr);
-  delay(500);
-  context.meterConnection->getTotalPower(&context.tpr);
-  delay(500);
-  context.meterConnection->getTariff(&context.trr);
-
-  json["vol"] = context.vr.voltage;
-  json["cur"] = context.vr.current;
-  json["fre"] = context.vr.frequency;
-  
-  json["api"] = context.tpr.energyImport;
-  json["ape"] = context.tpr.energyExport;
-  json["pf"] = context.tpr.powerFactor;
-
-  json["vaz"] = context.trr.vazio;
-  json["pon"] = context.trr.ponta;
-  json["che"] = context.trr.cheias;
-  json["tar"] = context.trr.tariff;
-
-  json["tim"] = context.trr.totalImport;
-  json["tex"] = context.trr.totalExport;
-  
-  char data[1024];
-  serializeJsonPretty(json, data);
-
-  context.mqttConnection->mqttConnect();
-
-  Serial.print("Consumption: "); Serial.println(data);
-  context.mqttConnection->mqttPublish("tele/powermeter/consumption", data);
-}
-
-void sendMachineStatus(){
-
-  DynamicJsonDocument json(512);
-  
-  context.meterConnection->getClock(&context.cr);
-  delay(500);
-
-  json["ver"] = VERSION;
-  json["mem"] = ESP.getFreeHeap();
-  json["net"] = WiFi.RSSI();
-  json["yea"] = context.cr.year;
-  json["mon"] = context.cr.month;
-  json["day"] = context.cr.dayMonth;
-  json["hou"] = context.cr.hours;
-  json["min"] = context.cr.minutes;
-  json["sec"] = context.cr.seconds;
-  
-  char data[512];
-  serializeJson(json, data);
-
-  context.mqttConnection->mqttConnect();
-
-  Serial.print("Status: "); Serial.println(data);
-  context.mqttConnection->mqttPublish("tele/powermeter/status", data);
+  context.statusJson["ver"] = VERSION;
 }
 
 void setupOTA() {
   
-  ArduinoOTA.setPort(8080);
-  ArduinoOTA.setHostname("tasduino");
+  ArduinoOTA.setPort(OTA_PORT);
+  ArduinoOTA.setHostname(OTA_HOSTNAME);
   
+#if DEBUG
   ArduinoOTA.onStart([]() {
     String type;
     if (ArduinoOTA.getCommand() == U_FLASH) {
@@ -146,20 +71,67 @@ void setupOTA() {
       Serial.println("End Failed");
     }
   });
-  
+#endif
+ 
   ArduinoOTA.begin();
   
 }
 
+void setup() {
+
+  setupSerial();
+  setupWiFi();
+  setupContext();
+  setupOTA();
+}
+
+void publishMeterData() {
+  context.consumptionJson.clear();
+  context.statusJson.clear();
+
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x006c, 10, Long, { "vol", "cur" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x007f, 10, Long, { "fre" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x007b, 1000, Long, { "pf" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x0026, 1000, Double, { "vaz", "pon", "che" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x000b, 1, Integer, { "tar" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x002c, 1000, Double, { "tim" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x0033, 1000, Double, { "tex" });
+  context.meterConnection->readRegisters(&context.consumptionJson, 0x0001, 1, Integer, { "", "", "", "", "", "hou", "min", "sec" });
+  context.mqttConnection->mqttPublish("tele/powermeter/consumption", &context.consumptionJson);
+
+  uint32_t currentMillis = millis();
+  uint32_t seconds = currentMillis / 1000;
+  uint32_t minutes = seconds / 60;
+  uint32_t hours = minutes / 60;
+  uint32_t days = hours / 24;
+  currentMillis %= 1000;
+  seconds %= 60;
+  minutes %= 60;
+  hours %= 24;
+  
+  context.statusJson["mem"] = ESP.getFreeHeap();
+  context.statusJson["net"] = WiFi.RSSI();
+  context.statusJson["wid"] = WIFI_SSID;
+  context.statusJson["vcc"] = (double) ESP.getVcc() / 1000;
+  context.statusJson["utd"] = days;
+  context.statusJson["uth"] = hours;
+  context.statusJson["utm"] = minutes;
+  context.statusJson["uts"] = seconds;
+  context.statusJson["utu"] = currentMillis;
+  
+  context.mqttConnection->mqttPublish("tele/powermeter/status", &context.statusJson);
+}
+
 void loop() {
 
-  sendConsumptionStatus();
-  sendMachineStatus();
-  
   // 150sec = 2.5min
   for(int s=0; s < 150; s++) {
-      ArduinoOTA.handle();
-      delay(1000);
+    ArduinoOTA.handle();
+    delay(1000);
   }
-
+  
+  //if(context.mqttConnection->mqttIsConnected()) {
+    publishMeterData();
+  //}
+  
 }
