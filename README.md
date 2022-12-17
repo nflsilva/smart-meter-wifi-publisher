@@ -22,7 +22,7 @@ It starts by querying specific registers on the meter, using MODBUS as communica
 
 Finally, this information can be collected and analyzed on any of the user's favorite system, such as [Home Assistant](https://www.home-assistant.io/).
 
-![Home Assistant example](/assets/ha.png?raw=true "Home Assistant example)
+![Home Assistant example](/assets/ha.png?raw=true "Home Assistant example")
 
 ## What hardware is needed?
 
