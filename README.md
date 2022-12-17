@@ -33,6 +33,9 @@ However, for this project we used the famous ESP8266 WiFi Module and a RS-485 to
 
 ![ESP8266 WiFi module](/assets/esp8266.jpg?raw=true "ESP8266 WiFi module")
 
+The connections were done as follows.
+
+![Connections](/assets/connections.png?raw=true "Connections")
 
 ## References
 --------------------------------------
