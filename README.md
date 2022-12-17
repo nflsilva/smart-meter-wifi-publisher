@@ -29,13 +29,17 @@ The software is hardware independent, as long as it supports [RS-485](https://en
 
 However, for this project we used the famous ESP8266 WiFi Module and a RS-485 to TTL serial converter.
 
-![RS-485 to TTL](/assets/rs485-to-ttl.jpg?raw=true "RS-485 to TTL")
+![RS-485 to TTL](/assets/rs485-to-ttl.png "RS-485 to TTL")
 
 ![ESP8266 WiFi module](/assets/esp8266.jpg?raw=true "ESP8266 WiFi module")
 
 The connections were done as follows.
 
 ![Connections](/assets/connections.png?raw=true "Connections")
+
+## How is this project organized?
+
+
 
 ## References
 --------------------------------------
