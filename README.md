@@ -46,14 +46,11 @@ The connections were done as follows.
 ## How is this project organized?
 To compile the project, users should install the necessary dependencies.
 
-- ESP8266WiFi.h - used to setup the Wi-Fi Connection.
-- ArduinoJson.h - used to generate the JSON objects to send over the network.
-- ArduinoMqttClient.h - used to connect to the MQTT broker.
+- `ESP8266WiFi.h` - used to setup the Wi-Fi Connection.
+- `ArduinoJson.h` - used to generate the JSON objects to send over the network.
+- `ArduinoMqttClient.h` - used to connect to the MQTT broker.
 
-
-
-
-
+It is also necessary to setup `secrets.h` with the correct settings. A sample file is provided.
 
 ## References
 --------------------------------------
