@@ -31,9 +31,13 @@ However, for this project we used the famous ESP8266 WiFi Module and a RS-485 to
 
 <div align="center">
     <img src="/assets/rs485-to-ttl.png">
+    <br>
+    RS-485
 </div>
 <div align="center">
     <img src="/assets/esp8266.png">
+    <br>
+    ESP8266
 </div>
 
 The connections were done as follows.
