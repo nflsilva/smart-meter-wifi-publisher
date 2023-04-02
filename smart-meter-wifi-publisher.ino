@@ -85,7 +85,6 @@ void setup() {
 }
 
 void publishMeterData() {
-  bool didReconnect = context.didReconnect;
   context.consumptionJson.clear();
   context.statusJson.clear();
 
@@ -97,7 +96,7 @@ void publishMeterData() {
   context.meterConnection->readRegisters(&context.consumptionJson, 0x002c, 1000, Double, { "tim" });
   context.meterConnection->readRegisters(&context.consumptionJson, 0x0033, 1000, Double, { "tex" });
   context.meterConnection->readRegisters(&context.consumptionJson, 0x0001, 1, Integer, { "", "", "", "", "", "hou", "min", "sec" });
-  //context.mqttConnection->mqttPublish("tele/powermeter/consumption", &context.consumptionJson);
+  context.mqttConnection->mqttPublish("tele/powermeter/consumption", &context.consumptionJson);
 
   uint32_t currentMillis = millis();
   uint32_t seconds = currentMillis / 1000;
@@ -119,24 +118,19 @@ void publishMeterData() {
   context.statusJson["uts"] = seconds;
   context.statusJson["utu"] = currentMillis;
   context.statusJson["rec"] = context.didReconnect;
+  context.didReconnect = false;
   
   context.mqttConnection->mqttPublish("tele/powermeter/status", &context.statusJson);
 }
 
 void loop() {
 
-  context.didReconnect = ensureWiFiConnection();
-  if(context.didReconnect) {
-    Serial.println("Needed reconnect.");
-  }
+  context.didReconnect = context.didReconnect || ensureWiFiConnection();
   publishMeterData();
 
   // 10 * 10 * 0.1sec ~ 10s
   for(int s=0; s < 10 * 10; s++) {
-    context.didReconnect = ensureWiFiConnection();
-    if(context.didReconnect) {
-      Serial.println("Needed reconnect.");
-    }
+    context.didReconnect = context.didReconnect || ensureWiFiConnection();
     ArduinoOTA.handle();
     delay(100);
   }
