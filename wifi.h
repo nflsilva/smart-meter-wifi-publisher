@@ -5,3 +5,4 @@
 #include "secrets.h"
 
 WiFiClient* createWiFiConnection();
+bool ensureWiFiConnection();
